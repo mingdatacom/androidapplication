@@ -1,18 +1,20 @@
 package com.dtc.android.myapplication;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.tencent.mm.sdk.modelbase.BaseReq;
+import com.tencent.mm.sdk.modelbase.BaseResp;
 import com.tencent.mm.sdk.modelmsg.SendAuth;
 import com.tencent.mm.sdk.openapi.IWXAPI;
 import com.tencent.mm.sdk.openapi.IWXAPIEventHandler;
 import com.tencent.mm.sdk.openapi.WXAPIFactory;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivityHandler extends AppCompatActivity implements IWXAPIEventHandler {
 
     private static final String TAG = "MainActivity";
 
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        api.handleIntent(getIntent(), this);
     }
 
     private void regToWx() {
@@ -51,8 +54,36 @@ public class MainActivity extends AppCompatActivity {
         api = WXAPIFactory.createWXAPI(this, APP_ID, false);
 
         // 将该app注册到微信
-        boolean registerResult = api.registerApp(APP_ID);
-        Log.d(TAG, "register result " + registerResult);
+        api.registerApp(APP_ID);
+
     }
 
+    // 微信发送请求到第三方应用时，会回调到该方法
+    @Override
+    public void onReq(BaseReq req) {
+        Log.d(TAG, "send req to weixin req.openid " + req.openId);
+    }
+
+    // 第三方应用发送到微信的请求处理后的响应结果，会回调到该方法
+    @Override
+    public void onResp(BaseResp resp) {
+        int result = 0;
+
+        switch (resp.errCode) {
+            case BaseResp.ErrCode.ERR_OK:
+                result = R.string.errcode_success;
+                break;
+            case BaseResp.ErrCode.ERR_USER_CANCEL:
+                result = R.string.errcode_cancel;
+                break;
+            case BaseResp.ErrCode.ERR_AUTH_DENIED:
+                result = R.string.errcode_deny;
+                break;
+            default:
+                result = R.string.errcode_unknown;
+                break;
+        }
+        Log.d(TAG, "got response from weixin code " + resp.errCode);
+        Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+    }
 }
